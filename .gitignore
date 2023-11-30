@@ -1,0 +1,6 @@
+logs
+*.so
+.env
+plugins/email/data
+data
+data/emails
