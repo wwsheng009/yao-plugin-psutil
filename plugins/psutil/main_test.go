@@ -26,7 +26,7 @@ func TestPsUtilPlugin_Exec(t *testing.T) {
 				name string
 				args []interface{}
 			}{
-				name: "disk",
+				name: "net2",
 				args: []interface{}{},
 			},
 			want: &grpc.Response{Bytes: []byte(`{"code":200,"message":"接收成功"}`), Type: "map"},

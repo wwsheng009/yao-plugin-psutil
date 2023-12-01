@@ -70,25 +70,7 @@ func (p ProcessConnects) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
-const (
-	b  = uint64(1)
-	kb = 1024 * b
-	mb = 1024 * kb
-	gb = 1024 * mb
-)
-
-func formatBytes(bytes uint64) string {
-	switch {
-	case bytes < kb:
-		return fmt.Sprintf("%dB", bytes)
-	case bytes < mb:
-		return fmt.Sprintf("%.2fKB", float64(bytes)/float64(kb))
-	case bytes < gb:
-		return fmt.Sprintf("%.2fMB", float64(bytes)/float64(mb))
-	default:
-		return fmt.Sprintf("%.2fGB", float64(bytes)/float64(gb))
-	}
-}
+// https://github.com/1Panel-dev/1Panel/blob/732080b0bf1bc340e9d4bbf87734976545878879/backend/utils/websocket/process_data.go#L181
 
 func getProcessData(processConfig PsProcessConfig) (res []PsProcessData, err error) {
 	var processes []*process.Process

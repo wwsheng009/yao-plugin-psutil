@@ -8,3 +8,4 @@ windows:
 .PHONY:	clean
 clean:
 	rm -f "../psutil.so"
+	rm -f "../psutil.dll"

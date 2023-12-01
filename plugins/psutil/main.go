@@ -47,6 +47,11 @@ type Memory struct {
 	VirtualMemory *mem.VirtualMemoryStat `json:"vertual_memory"`
 	SwapMemory    *mem.SwapMemoryStat    `json:"swap_memory"`
 }
+
+type Memory2 struct {
+	VirtualMemory *VirtualMemoryStat `json:"vertual_memory"`
+	SwapMemory    *SwapMemoryStat    `json:"swap_memory"`
+}
 type User struct {
 	Info        *host.InfoStat         `jons:"info"`
 	User        []host.UserStat        `json:"user"`
@@ -155,8 +160,17 @@ func (plugin *PsUtilPlugin) Exec(name string, args ...interface{}) (*grpc.Respon
 		mem1 := Memory{}
 		mem1.VirtualMemory, _ = mem.VirtualMemory()
 		mem1.SwapMemory, _ = mem.SwapMemory()
-
 		data = mem1
+	case "mem2":
+		mem1 := Memory{}
+		mem1.VirtualMemory, _ = mem.VirtualMemory()
+		mem1.SwapMemory, _ = mem.SwapMemory()
+		// 转换成mb/gb 显示
+		mem2 := Memory2{}
+		convertToFormattedString(&mem1, &mem2)
+		data = mem2
+	case "net2":
+		data, _ = getNetConnections(NetConfig{})
 	case "net":
 		netInfo := Net{}
 		netInfo.Connections = make(map[string][]net.ConnectionStat)
@@ -181,9 +195,9 @@ func (plugin *PsUtilPlugin) Exec(name string, args ...interface{}) (*grpc.Respon
 		netInfo.ProtoCounters, _ = net.ProtoCounters([]string{})
 		data = netInfo
 	case "process":
-		// processInfo := Process{}
-		// processInfo.Processes, _ = process.Processes()
 		data, _ = getProcessData(PsProcessConfig{})
+	case "ssh_session":
+		data, _ = getSSHSessions(SSHSessionConfig{})
 	case "winservices":
 		if runtime.GOOS == "windows" {
 			data = Winservice()
