@@ -2,6 +2,8 @@
 
 yao plugin for getting system infomation.
 
+the default plugin folder path is `<YAO_EXTENSION_ROOT>/plugins/`, the default value for YAO_EXTENSION_ROOT is the app folder, you can change the YAO_EXTENSION_ROOT in the .env file.
+
 refer to :
 
 - 1Panel: https://github.com/1Panel-dev/1Panel
@@ -38,10 +40,13 @@ yao run plugins.psutil.host
 # load
 yao run plugins.psutil.load
 
+# dashboard
+yao run plugins.psutil.dashboard
+
 # mem
 yao run plugins.psutil.mem
 
-# mem2
+# mem2 all the numbers converted to string format dispaly
 yao run plugins.psutil.mem2
 
 # net every thing related to net

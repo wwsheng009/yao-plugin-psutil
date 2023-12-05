@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
@@ -44,38 +45,54 @@ func (plugin *PsUtilPlugin) setLogFile() {
 }
 
 type Memory struct {
-	VirtualMemory *mem.VirtualMemoryStat `json:"vertual_memory"`
-	SwapMemory    *mem.SwapMemoryStat    `json:"swap_memory"`
+	VirtualMemory *mem.VirtualMemoryStat `json:"vertualMemory"`
+	SwapMemory    *mem.SwapMemoryStat    `json:"swapMemory"`
 }
 
 type Memory2 struct {
-	VirtualMemory *VirtualMemoryStat `json:"vertual_memory"`
-	SwapMemory    *SwapMemoryStat    `json:"swap_memory"`
+	VirtualMemory *VirtualMemoryStat `json:"vertualMemory"`
+	SwapMemory    *SwapMemoryStat    `json:"swapMemory"`
 }
-type User struct {
-	Info        *host.InfoStat         `jons:"info"`
-	User        []host.UserStat        `json:"user"`
+type Host struct {
+	BootTime    string                 `json:"bootTime"`
+	HostInfo    *host.InfoStat         `json:"hostInfo"`
+	UserStat    []host.UserStat        `json:"userStat"`
 	Temperature []host.TemperatureStat `json:"temperature"`
 }
 
 type Cpu struct {
-	Info []cpu.InfoStat `jons:"info"`
+	CpuInfo []cpu.InfoStat `jons:"cpuInfo"`
 }
+
+type DiskUsageStat struct {
+	Path              string  `json:"path"`
+	Fstype            string  `json:"fstype"`
+	Total             string  `json:"total"`
+	Free              string  `json:"free"`
+	Used              string  `json:"used"`
+	UsedPercent       float64 `json:"usedPercent"`
+	InodesTotal       string  `json:"inodesTotal"`
+	InodesUsed        string  `json:"inodesUsed"`
+	InodesFree        string  `json:"inodesFree"`
+	InodesUsedPercent float64 `json:"inodesUsedPercent"`
+}
+
 type Disk struct {
-	Partitions []disk.PartitionStat           `json:"partitions"`
-	IOCounters map[string]disk.IOCountersStat `json:"io_counters"`
-	Usage      []*disk.UsageStat              `json:"usage"`
+	Partitions []disk.PartitionStat           `json:"diskPartitions"`
+	IOCounters map[string]disk.IOCountersStat `json:"ioCounters"`
+	Usage      []*disk.UsageStat              `json:"diskUsage"`
+	Usages     []DiskUsageStat                `json:"diskUsages"`
 	// SerialNumbers map[string]string              `json:"serialNumbers"`
 }
 type Load struct {
-	Misc *load.MiscStat `json:"misc"`
-	Avg  *load.AvgStat  `jon:"avg"`
+	LoadMisc *load.MiscStat `json:"loadMisc"`
+	LoadAvg  *load.AvgStat  `jon:"loadAvg"`
 }
 type Net struct {
-	IOCounters     []net.IOCountersStat            `json:"io_counters"`
-	ProtoCounters  []net.ProtoCountersStat         `json:"proto_counters"`
-	FilterCounters []net.FilterStat                `json:"filter_counters"`
-	ConntrackStats []net.ConntrackStat             `json:"conntrack_stats"`
+	IOCounters     []net.IOCountersStat            `json:"ioCounters"`
+	ProtoCounters  []net.ProtoCountersStat         `json:"protoCounters"`
+	FilterCounters []net.FilterStat                `json:"filterCounters"`
+	ConntrackStats []net.ConntrackStat             `json:"conntrackStats"`
 	Connections    map[string][]net.ConnectionStat `json:"connections"`
 	Interfaces     net.InterfaceStatList           `json:"interfaces"`
 }
@@ -84,10 +101,10 @@ type Process struct {
 }
 
 type Docker struct {
-	GroupStat  []docker.CgroupDockerStat        `json:"docker_stat"`
-	DockerList []string                         `json:"docker_list"`
-	CpuStat    map[string]*docker.CgroupCPUStat `json:"cpu"`
-	MemStat    map[string]*docker.CgroupMemStat `json:"mem"`
+	GroupStat  []docker.CgroupDockerStat        `json:"dockerStat"`
+	DockerList []string                         `json:"dockerList"`
+	CpuStat    map[string]*docker.CgroupCPUStat `json:"dockerCpu"`
+	MemStat    map[string]*docker.CgroupMemStat `json:"dockerMem"`
 }
 
 // 插件执行需要实现的方法
@@ -113,25 +130,53 @@ func (plugin *PsUtilPlugin) Exec(name string, args ...interface{}) (*grpc.Respon
 	switch name {
 	case "cpu":
 		cpuInfo := Cpu{}
-		cpuInfo.Info, _ = cpu.Info()
+		cpuInfo.CpuInfo, _ = cpu.Info()
 		data = cpuInfo
 	case "disk":
 		diskInfo := Disk{}
-		diskInfo.Partitions, _ = disk.Partitions(true)
+		readAll := false
+		if len(args) > 0 {
+			readAll = convertToBoolean(args[0])
+		}
+		diskInfo.Partitions, _ = disk.Partitions(readAll)
 		diskInfo.IOCounters, _ = disk.IOCounters()
 		// diskInfo.SerialNumbers = make(map[string]string, 0)
 		for _, p := range diskInfo.Partitions {
 			usage, err := disk.Usage(p.Mountpoint)
 			if err == nil && usage != nil {
 				diskInfo.Usage = append(diskInfo.Usage, usage)
+
+				diskUsage := DiskUsageStat{}
+				diskUsage.Path = usage.Path
+				diskUsage.Fstype = usage.Fstype
+				diskUsage.Total = formatBytes(usage.Total)
+				diskUsage.Free = formatBytes(usage.Free)
+				diskUsage.Used = formatBytes(usage.Used)
+				diskUsage.UsedPercent = usage.UsedPercent
+				diskUsage.InodesTotal = formatBytes(usage.InodesTotal)
+				diskUsage.InodesUsed = formatBytes(usage.InodesUsed)
+				diskUsage.InodesFree = formatBytes(usage.InodesFree)
+				diskUsage.InodesUsedPercent = usage.InodesUsedPercent
+				diskInfo.Usages = append(diskInfo.Usages, diskUsage)
 			}
-			// serial, err := disk.SerialNumber(p.Device)
-			// if err == nil {
-			// 	diskInfo.SerialNumbers[p.Device] = serial
-			// }
+
 		}
 
 		data = diskInfo
+	case "dashboard":
+		ds := DashboardService{}
+		ioOption := "all"
+		netOption := "all"
+
+		if len(args) > 0 {
+			ioOption = args[0].(string)
+		}
+		if len(args) > 1 {
+			netOption = args[1].(string)
+		}
+
+		dsInfo, _ := ds.LoadBaseInfo(netOption, ioOption)
+		data = dsInfo
 	case "docker":
 		dockerInfo := Docker{}
 		dockerInfo.GroupStat, _ = docker.GetDockerStat()
@@ -143,18 +188,17 @@ func (plugin *PsUtilPlugin) Exec(name string, args ...interface{}) (*grpc.Respon
 		}
 		data = dockerInfo
 	case "host":
-		user := User{}
-		user.User, _ = host.Users()
-		user.Info, _ = host.Info()
+		hostInfo := Host{}
+		hostInfo.UserStat, _ = host.Users()
+		hostInfo.HostInfo, _ = host.Info()
+		goTime := time.Unix(int64(hostInfo.HostInfo.BootTime), 0)
+		hostInfo.BootTime = goTime.Format("2006-01-02 15:04:05")
 
-		// if err != nil {
-		// 	return nil, err
-		// }
-		data = user
+		data = hostInfo
 	case "load":
 		loadInfo := Load{}
-		loadInfo.Avg, _ = load.Avg()
-		loadInfo.Misc, _ = load.Misc()
+		loadInfo.LoadAvg, _ = load.Avg()
+		loadInfo.LoadMisc, _ = load.Misc()
 		data = loadInfo
 	case "mem":
 		mem1 := Memory{}
@@ -201,13 +245,16 @@ func (plugin *PsUtilPlugin) Exec(name string, args ...interface{}) (*grpc.Respon
 	case "winservices":
 		if runtime.GOOS == "windows" {
 			data = Winservice()
+		} else {
+			isOk = false
+			v = map[string]interface{}{"code": 500, "message": fmt.Sprintf("方法只支持windows操作系统：%s", name)}
 		}
 	default:
 		isOk = false
 		v = map[string]interface{}{"code": 500, "message": fmt.Sprintf("方法不支持：%s", name)}
 	}
 	if data != nil && isOk {
-		v = map[string]interface{}{"code": 200, "result": data}
+		v = map[string]interface{}{"system": data}
 		//输出前需要转换成字节
 	}
 	bytes1, err := json.Marshal(v)

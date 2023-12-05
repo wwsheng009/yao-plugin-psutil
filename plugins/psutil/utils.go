@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -23,6 +24,25 @@ func formatBytes(bytes uint64) string {
 	default:
 		return fmt.Sprintf("%.2fGB", float64(bytes)/float64(gb))
 	}
+}
+func convertToBoolean(val interface{}) bool {
+	switch v := val.(type) {
+	case string:
+		// Handle string type
+		// Convert string to boolean, e.g., "true" or "1" -> true
+		return strings.ToLower(v) == "true" || v == "1"
+	case bool:
+		// Handle boolean type
+		// No conversion needed, already a boolean
+		return v
+	case int:
+		// Handle int type
+		// Convert int to boolean, e.g., 0 -> false, any other value -> true
+		return v != 0
+	}
+
+	// Type not supported
+	return false
 }
 
 // copy data to data2,and convert the fields
