@@ -31,7 +31,8 @@ jobs:
       run: |
         export GOARCH=$(echo ${{ matrix.platform }} | cut -d '/' -f 2)
         export GOOS=$(echo ${{ matrix.platform }} | cut -d '/' -f 1)
-        go build -o psutil-$GOOS-$GOARCH.so
+        CGO_ENABLED=0 go build -o psutil-$GOOS-$GOARCH.so
+        chmod +x psutil-*.so
         ls -lart
 
     - name: Create Release
