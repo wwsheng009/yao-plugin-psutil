@@ -14,13 +14,14 @@ refer to :
 
 ```sh
 
-cd plugins/pstuil
-
 make build
+
+mv psutil.so to yaoapp/plugins
 
 ```
 
 ## test
+
 
 plugin test
 
