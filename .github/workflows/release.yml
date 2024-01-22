@@ -24,8 +24,8 @@ jobs:
 
     - name: Build Go project
       run: |
-        GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -o psutil-linux.amd64.so
-        GOOS=linux CGO_ENABLED=0 GOARCH=arm64 go build -o psutil-linux.arm64.so
+        GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -o psutil-linux-amd64.so
+        GOOS=linux CGO_ENABLED=0 GOARCH=arm64 go build -o psutil-linux-arm64.so
         chmod +x psutil-*.so
         ls -lart
 
