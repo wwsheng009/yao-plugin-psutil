@@ -39,7 +39,7 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: psutil-linux-plugin
+        tag_name: psutil-linux-plugin-test
         files: |
           *.so
       env:
